@@ -2171,6 +2171,7 @@
                 }
                 if (virtualDate.toDateString() !== lastDateStr) {
                     lastDateStr = virtualDate.toDateString();
+                    if (isEditMode) saveTemporarily();
                     currentViewDate = new Date(virtualDate);
                     setAutoWeek();
                     renderSchedule();
@@ -2274,6 +2275,7 @@
                 dayDisplay.classList.remove('animate-swap');
                 void grid.offsetWidth;
                 void dayDisplay.offsetWidth;
+                if (isEditMode) saveTemporarily();
                 currentViewDate.setDate(currentViewDate.getDate() + offset);
                 renderSchedule();
                 grid.classList.add('animate-swap');
@@ -2281,6 +2283,7 @@
             }
 
             function setWeek(week) {
+                if (isEditMode) saveTemporarily();
                 currentWeekType = week;
                 document.getElementById('btn-m1').classList.toggle('active', week === 'm1');
                 document.getElementById('btn-m2').classList.toggle('active', week === 'm2');
