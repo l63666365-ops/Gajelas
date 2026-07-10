@@ -2324,7 +2324,7 @@
                         let tp = jamRaw.split('-');
                         let jamStart = (tp[0] || "").trim();
                         let jamEnd = (tp[1] || "").trim();
-                        colMapel.innerHTML += `<div class="item-box" style="position: relative;"><button class="btn-delete-row" onclick="deleteRow(${index})">×</button><input class="input-edit" id="edit-mapel-${index}" value="${item[0]}"></div>`;
+                        colMapel.innerHTML += `<div class="item-box" style="position: relative;"><button class="btn-delete-row" onclick="deleteRow(${index})">×</button><input class="input-edit" id="edit-mapel-${index}" placeholder="Mapel Baru" value="${item[0]}"></div>`;
                         colJam.innerHTML += `<div class="item-box">
                 <input type="time" class="input-edit" id="edit-jam-start-${index}" value="${jamStart}"> 
                 <span style="font-size:10px">s/d</span> 
@@ -2363,7 +2363,7 @@
                 const dayName = days[currentViewDate.getDay()];
                 saveTemporarily();
                 if (!jadwalData[currentWeekType][dayName]) jadwalData[currentWeekType][dayName] = [];
-                jadwalData[currentWeekType][dayName].push(["Mapel Baru", "07:00-08:00", "(-)"]);
+                jadwalData[currentWeekType][dayName].push(["", "07:00-08:00", "(-)"]);
                 renderSchedule();
             }
 
