@@ -1364,10 +1364,10 @@
             resize: none;
             font-family: inherit;
             font-size: 12px;
-            min-height: 40px;
+            height: 40px;
             max-height: 130px;
             overflow-y: auto;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s, height 0.15s ease;
         }
 
         #taskInput:focus {
@@ -2001,17 +2001,28 @@
                 }
             })();
 
-            // Auto-resize kotak input tugas ala WhatsApp: kotak tumbuh ke bawah
-            // seiring baris baru ditambah, jadi teks yang udah diketik tetap kelihatan.
+            // Auto-resize kotak input tugas ala WhatsApp: ukuran normal kayak biasa,
+            // baru nambah tinggi ke bawah pas tombol Enter ditekan (bikin baris baru).
             (function initTaskInputAutosize() {
                 const el = document.getElementById('taskInput');
                 if (!el) return;
-                const resize = () => {
+                const grow = () => {
                     el.style.height = 'auto';
-                    el.style.height = el.scrollHeight + 'px';
+                    el.style.height = Math.max(el.scrollHeight, 40) + 'px';
                 };
-                el.addEventListener('input', resize);
-                resize();
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        // Kasih waktu browser nyisipin baris barunya dulu,
+                        // baru dihitung tinggi baru si kotak.
+                        setTimeout(grow, 0);
+                    }
+                });
+                // Kalau baris dihapus (backspace/delete), ciutkan lagi tinggi kotaknya.
+                el.addEventListener('input', (e) => {
+                    if (e.inputType && e.inputType.startsWith('delete')) {
+                        grow();
+                    }
+                });
             })();
 
             function bukaKamera(event) {
