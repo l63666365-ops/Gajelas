@@ -386,30 +386,51 @@
             color: var(--color-1);
         }
 
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-6px) scale(0.85);
+            }
+
+            60% {
+                opacity: 1;
+                transform: translateY(2px) scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
         .btn-today-link {
-            background: none;
+            background: var(--color-2);
+            color: var(--accent-light);
             border: none;
+            border-radius: 24px;
+            display: flex;
             align-items: center;
-            gap: 5px;
-            color: var(--color-3);
+            gap: 6px;
             font-size: 12px;
-            font-weight: 700;
-            padding: 6px 10px;
-            margin-top: -10px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            padding: 9px 18px;
+            margin-top: -8px;
             cursor: pointer;
-            transition: color 0.2s;
-            animation: fadeInUp 0.3s ease;
+            box-shadow: 0 4px 12px rgba(5, 38, 89, 0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .btn-today-link svg {
-            width: 14px;
-            height: 14px;
+            width: 15px;
+            height: 15px;
             flex-shrink: 0;
         }
 
-        .btn-today-link:hover,
         .btn-today-link:active {
-            color: var(--color-2);
+            transform: scale(0.94);
+            box-shadow: 0 2px 6px rgba(5, 38, 89, 0.35);
         }
 
         .week-toggle {
@@ -1343,13 +1364,14 @@
             resize: none;
             font-family: inherit;
             font-size: 12px;
-            height: 40px;
+            min-height: 40px;
+            max-height: 130px;
+            overflow-y: auto;
             transition: border-color 0.3s;
         }
 
         #taskInput:focus {
             border-color: var(--color-2);
-            height: 40px;
         }
 
         @keyframes slideSwap {
@@ -1977,6 +1999,19 @@
                 if (localStorage.getItem('isLoggedIn') !== 'true') {
                     window.location.replace('login.html');
                 }
+            })();
+
+            // Auto-resize kotak input tugas ala WhatsApp: kotak tumbuh ke bawah
+            // seiring baris baru ditambah, jadi teks yang udah diketik tetap kelihatan.
+            (function initTaskInputAutosize() {
+                const el = document.getElementById('taskInput');
+                if (!el) return;
+                const resize = () => {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                };
+                el.addEventListener('input', resize);
+                resize();
             })();
 
             function bukaKamera(event) {
@@ -2924,6 +2959,7 @@
                         localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
                     }
                     input.value = "";
+                    input.style.height = '';
                     cancelImage();
                     window.lastTasksData = "";
                     loadTasks();
