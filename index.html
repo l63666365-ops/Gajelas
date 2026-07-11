@@ -386,6 +386,32 @@
             color: var(--color-1);
         }
 
+        .btn-today-link {
+            background: none;
+            border: none;
+            align-items: center;
+            gap: 5px;
+            color: var(--color-3);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            margin-top: -10px;
+            cursor: pointer;
+            transition: color 0.2s;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .btn-today-link svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .btn-today-link:hover,
+        .btn-today-link:active {
+            color: var(--color-2);
+        }
+
         .week-toggle {
             display: flex;
             gap: 10px;
@@ -713,17 +739,6 @@
             box-shadow: 0 4px 15px rgba(5, 38, 89, 0.3);
             z-index: 999;
             transition: transform 0.2s;
-        }
-
-        .pomo-icon.btn-today {
-            top: auto;
-            right: 14px;
-            bottom: 20px;
-            animation: fadeInUp 0.25s ease;
-        }
-
-        .pomo-icon.btn-today:active {
-            transform: scale(0.9);
         }
 
         .pomo-overlay {
@@ -1755,15 +1770,6 @@
         </svg>
     </div>
 
-    <div class="pomo-icon btn-today" id="btn-today" onclick="goToToday()" title="Kembali ke hari ini"
-        style="display:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 14 4 9 9 4"></polyline>
-            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-        </svg>
-    </div>
-
     <div class="container">
         <div id="adminSelector" style="display: none; flex-direction: column; gap: 15px;">
             <div class="glass-card header-strip">
@@ -1856,6 +1862,19 @@
                     </svg>
                 </button>
             </div>
+
+            <button class="btn-today-link" id="btn-today" onclick="goToToday()" title="Kembali ke hari ini"
+                style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                    <path d="m9 16 2 2 4-4"></path>
+                </svg>
+                <span>Kembali ke Hari Ini</span>
+            </button>
 
             <div class="week-toggle">
                 <button id="btn-m1" class="btn-week active" onclick="setWeek('m1')">Minggu 1</button>
