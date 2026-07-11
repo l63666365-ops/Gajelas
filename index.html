@@ -376,6 +376,10 @@
             background: var(--color-1);
         }
 
+        .btn-today {
+            animation: fadeInUp 0.25s ease;
+        }
+
         .current-day-box {
             flex-grow: 1;
             padding: 8px;
@@ -1835,6 +1839,14 @@
                         <polyline points="6 17 11 12 6 7"></polyline>
                     </svg>
                 </button>
+                <button class="btn-nav btn-today" id="btn-today" onclick="goToToday()" title="Kembali ke hari ini"
+                    style="display:none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="8" />
+                        <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+                    </svg>
+                </button>
             </div>
 
             <div class="week-toggle">
@@ -2181,6 +2193,7 @@
                     currentViewDate = new Date(virtualDate);
                     setAutoWeek();
                     renderSchedule();
+                    updateTodayButtonVisibility();
                 }
                 updateStatus();
                 if (!isEditMode) checkHighlight();
@@ -2276,6 +2289,27 @@
                 }
             }
 
+            function isViewingToday() {
+                const now = new Date();
+                return currentViewDate.getFullYear() === now.getFullYear() &&
+                    currentViewDate.getMonth() === now.getMonth() &&
+                    currentViewDate.getDate() === now.getDate();
+            }
+
+            function updateTodayButtonVisibility() {
+                const btn = document.getElementById('btn-today');
+                if (!btn) return;
+                btn.style.display = isViewingToday() ? 'none' : 'flex';
+            }
+
+            function goToToday() {
+                if (isViewingToday()) return;
+                if (isEditMode) saveTemporarily();
+                currentViewDate = new Date();
+                renderSchedule();
+                updateTodayButtonVisibility();
+            }
+
             function changeDay(offset) {
                 const grid = document.getElementById('main-grid');
                 const dayDisplay = document.getElementById('display-day');
@@ -2286,6 +2320,7 @@
                 if (isEditMode) saveTemporarily();
                 currentViewDate.setDate(currentViewDate.getDate() + offset);
                 renderSchedule();
+                updateTodayButtonVisibility();
                 grid.classList.add('animate-swap');
                 dayDisplay.classList.add('animate-swap');
             }
