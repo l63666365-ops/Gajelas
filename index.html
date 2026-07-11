@@ -2237,32 +2237,34 @@
                 const todayName = days[now.getDay()];
                 const statNow = document.getElementById('stat-now');
                 const statNext = document.getElementById('stat-next');
+
+                // Tentukan hari & minggu yang relevan: sebelum jam ganti hari = hari ini, setelahnya = besok
+                let refDate = new Date(now);
+                if (now.getHours() >= 18) refDate.setDate(refDate.getDate() + 1);
+                const autoWeek = (getWeekNumber(refDate) % 2 === 0) ? "m2" : "m1";
+                const namaHariRelevan = days[refDate.getDay()];
+                const listMapel = jadwalData[autoWeek][namaHariRelevan] || [];
+                // Libur cuma kalau Sabtu/Minggu DAN memang belum ada mapel yang diisi buat hari itu
+                const isLiburRelevan = (namaHariRelevan === "Sabtu" || namaHariRelevan === "Minggu") && listMapel.length === 0;
+
                 if (currentTimeMin >= jamGantiHari) {
-                    let besok = new Date(now);
-                    besok.setDate(besok.getDate() + 1);
-                    const namaBesok = days[besok.getDay()];
-                    if (namaBesok === "Sabtu" || namaBesok === "Minggu") {
+                    if (isLiburRelevan) {
                         statNow.innerHTML = 'Libur Akhir Pekan <svg width="20" height="20" viewBox="0 0 256 256" style="vertical-align:-5px; margin-left:3px;"><defs><linearGradient id="premium-gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFF3A8"/><stop offset="30%" stop-color="#FFD700"/><stop offset="70%" stop-color="#FFA500"/><stop offset="100%" stop-color="#CC7A00"/></linearGradient><filter id="intense-gold-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8" result="blur1"/><feGaussianBlur stdDeviation="3" result="blur2"/><feColorMatrix type="matrix" values="0 0 0 0 1.0 0 0 0 0 0.5 0 0 0 0 0.0 0 0 0 1 0" in="blur1" result="glow1"/><feColorMatrix type="matrix" values="0 0 0 0 1.0 0 0 0 0 0.9 0 0 0 0 0.2 0 0 0 1 0" in="blur2" result="glow2"/><feMerge><feMergeNode in="glow1"/><feMergeNode in="glow2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path fill="url(#premium-gold)" filter="url(#intense-gold-glow)" d="M208.8584,144a15.85626,15.85626,0,0,1-10.46778,15.01367l-52.16015,19.2168-19.2168,52.16015a16.00075,16.00075,0,0,1-30.02734,0l-19.2168-52.16015-52.16015-19.2168a16.00075,16.00075,0,0,1,0-30.02734l52.16015-19.2168,19.2168-52.16015a16.00075,16.00075,0,0,1,30.02734,0l19.2168,52.16015,52.16015,19.2168A15.85626,15.85626,0,0,1,208.8584,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z"/></svg>';
                         statNext.innerText = "";
                         tampilkanNotif("Libur Akhir Pekan ✨", "");
                     } else {
-                        statNow.innerHTML = `<b>Persiapan Besok: ${namaBesok}</b>`;
+                        statNow.innerHTML = `<b>Persiapan Besok: ${namaHariRelevan}</b>`;
                         statNext.innerText = "Tugas sudah diurutkan sesuai jadwal besok";
-                        tampilkanNotif(`Persiapan Besok: ${namaBesok}`, "Tugas sudah diurutkan sesuai jadwal besok");
+                        tampilkanNotif(`Persiapan Besok: ${namaHariRelevan}`, "Tugas sudah diurutkan sesuai jadwal besok");
                     }
                     return;
                 }
-                if (todayName === "Sabtu" || todayName === "Minggu") {
+                if (isLiburRelevan) {
                     statNow.innerHTML = 'Libur Akhir Pekan <svg width="20" height="20" viewBox="0 0 256 256" style="vertical-align:-5px; margin-left:3px;"><defs><linearGradient id="premium-gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFF3A8"/><stop offset="30%" stop-color="#FFD700"/><stop offset="70%" stop-color="#FFA500"/><stop offset="100%" stop-color="#CC7A00"/></linearGradient><filter id="intense-gold-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8" result="blur1"/><feGaussianBlur stdDeviation="3" result="blur2"/><feColorMatrix type="matrix" values="0 0 0 0 1.0 0 0 0 0 0.5 0 0 0 0 0.0 0 0 0 1 0" in="blur1" result="glow1"/><feColorMatrix type="matrix" values="0 0 0 0 1.0 0 0 0 0 0.9 0 0 0 0 0.2 0 0 0 1 0" in="blur2" result="glow2"/><feMerge><feMergeNode in="glow1"/><feMergeNode in="glow2"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path fill="url(#premium-gold)" filter="url(#intense-gold-glow)" d="M208.8584,144a15.85626,15.85626,0,0,1-10.46778,15.01367l-52.16015,19.2168-19.2168,52.16015a16.00075,16.00075,0,0,1-30.02734,0l-19.2168-52.16015-52.16015-19.2168a16.00075,16.00075,0,0,1,0-30.02734l52.16015-19.2168,19.2168-52.16015a16.00075,16.00075,0,0,1,30.02734,0l19.2168,52.16015,52.16015,19.2168A15.85626,15.85626,0,0,1,208.8584,144ZM152,48h16V64a8,8,0,0,0,16,0V48h16a8,8,0,0,0,0-16H184V16a8,8,0,0,0-16,0V32H152a8,8,0,0,0,0,16Zm88,32h-8V72a8,8,0,0,0-16,0v8h-8a8,8,0,0,0,0,16h8v8a8,8,0,0,0,16,0V96h8a8,8,0,0,0,0-16Z"/></svg>';
                     statNext.innerText = "";
                     tampilkanNotif("Libur Akhir Pekan ✨", "");
                     return;
                 }
-                // Gunakan virtual date untuk cek minggu: setelah jam 18 = sudah masuk hari berikutnya
-                let refDate = new Date(now);
-                if (now.getHours() >= 18) refDate.setDate(refDate.getDate() + 1);
-                const autoWeek = (getWeekNumber(refDate) % 2 === 0) ? "m2" : "m1";
-                const listMapel = jadwalData[autoWeek][todayName] || [];
                 let ongoing = null;
                 let next = null;
                 const getCountdown = (targetHour, targetMin) => {
@@ -2359,13 +2361,13 @@
                 const colJam = document.getElementById('col-jam');
                 const colRuang = document.getElementById('col-ruang');
                 colMapel.innerHTML = ""; colJam.innerHTML = ""; colRuang.innerHTML = "";
-                if (isLibur && !isEditMode) {
+                const hariIni = jadwalData[currentWeekType][dayName] || [];
+                if (isLibur && !isEditMode && hariIni.length === 0) {
                     colMapel.innerHTML = "<div class='item-box'>Libur</div>";
                     colJam.innerHTML = "<div class='item-box'>-</div>";
                     colRuang.innerHTML = "<div class='item-box'>-</div>";
                     return;
                 }
-                const hariIni = jadwalData[currentWeekType][dayName] || [];
                 hariIni.forEach((item, index) => {
                     if (isEditMode) {
                         let jamRaw = item[1].replace(/\./g, ':');
