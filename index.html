@@ -376,10 +376,6 @@
             background: var(--color-1);
         }
 
-        .btn-today {
-            animation: fadeInUp 0.25s ease;
-        }
-
         .current-day-box {
             flex-grow: 1;
             padding: 8px;
@@ -717,6 +713,17 @@
             box-shadow: 0 4px 15px rgba(5, 38, 89, 0.3);
             z-index: 999;
             transition: transform 0.2s;
+        }
+
+        .pomo-icon.btn-today {
+            top: auto;
+            right: 14px;
+            bottom: 20px;
+            animation: fadeInUp 0.25s ease;
+        }
+
+        .pomo-icon.btn-today:active {
+            transform: scale(0.9);
         }
 
         .pomo-overlay {
@@ -1748,6 +1755,15 @@
         </svg>
     </div>
 
+    <div class="pomo-icon btn-today" id="btn-today" onclick="goToToday()" title="Kembali ke hari ini"
+        style="display:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 14 4 9 9 4"></polyline>
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+        </svg>
+    </div>
+
     <div class="container">
         <div id="adminSelector" style="display: none; flex-direction: column; gap: 15px;">
             <div class="glass-card header-strip">
@@ -1837,14 +1853,6 @@
                         stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="13 17 18 12 13 7"></polyline>
                         <polyline points="6 17 11 12 6 7"></polyline>
-                    </svg>
-                </button>
-                <button class="btn-nav btn-today" id="btn-today" onclick="goToToday()" title="Kembali ke hari ini"
-                    style="display:none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="8" />
-                        <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
                     </svg>
                 </button>
             </div>
