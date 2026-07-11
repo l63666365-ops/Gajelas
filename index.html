@@ -1364,7 +1364,7 @@
             resize: none;
             font-family: inherit;
             font-size: 12px;
-            height: 40px;
+            height: 42px;
             max-height: 130px;
             overflow-y: auto;
             transition: border-color 0.3s, height 0.15s ease;
@@ -2008,7 +2008,7 @@
                 if (!el) return;
                 const grow = () => {
                     el.style.height = 'auto';
-                    el.style.height = Math.max(el.scrollHeight, 40) + 'px';
+                    el.style.height = Math.max(el.scrollHeight, 42) + 'px';
                 };
                 el.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
