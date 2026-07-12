@@ -2835,18 +2835,25 @@
             let localTasksCache = [];
             let cloudTasksCache = {};
 
-            async function loadTasks() {
+            async function loadTasks(skipFetch = false) {
                 const list = document.getElementById('taskList');
                 if (!list) return;
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem("userKelas") || "UMUM").trim();
                 let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
                 let cloudTasks = {};
-                try {
-                    const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
-                    cloudTasks = await res.json() || {};
-                } catch (e) {
-                    console.log("Gagal ambil data cloud", e);
+                if (skipFetch && window.cachedCloudTasks) {
+                    // Habis toggle centang: pakai cache biar re-render instan, gak nunggu network lagi
+                    cloudTasks = window.cachedCloudTasks;
+                } else {
+                    try {
+                        const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
+                        cloudTasks = await res.json() || {};
+                        window.cachedCloudTasks = cloudTasks;
+                    } catch (e) {
+                        console.log("Gagal ambil data cloud", e);
+                        cloudTasks = window.cachedCloudTasks || {};
+                    }
                 }
                 let localTasks = JSON.parse(localStorage.getItem('mySchoolTasks')) || [];
                 let combinedTasks = [];
@@ -3203,33 +3210,39 @@
                 }
             }
 
-            async function toggleTaskCloud(id, currentStatus, event) {
+            function toggleTaskCloud(id, currentStatus, event) {
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem('userKelas') || 'UMUM').trim();
                 const isNowDone = !currentStatus;
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
-                setTimeout(async () => {
-                    if (role === 'sekretaris') {
-                        await fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ done: isNowDone })
-                        });
-                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                        delete personalChecks[id];
-                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
-                    } else {
-                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                        if (isNowDone) {
-                            personalChecks[id] = true;
-                        } else {
-                            delete personalChecks[id];
-                        }
-                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+
+                // Update state lokal LANGSUNG (gak nunggu network) biar checkbox kerasa instan
+                if (role === 'sekretaris') {
+                    if (window.cachedCloudTasks && window.cachedCloudTasks[id]) {
+                        window.cachedCloudTasks[id].done = isNowDone;
                     }
-                    window.lastTasksData = "";
-                    loadTasks();
+                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
+                    delete personalChecks[id];
+                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                    // Sync ke server di BACKGROUND, gak nge-block tampilan
+                    fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ done: isNowDone })
+                    }).catch(e => console.log("Gagal sync ke cloud", e));
+                } else {
+                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
+                    if (isNowDone) {
+                        personalChecks[id] = true;
+                    } else {
+                        delete personalChecks[id];
+                    }
+                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                }
+
+                setTimeout(() => {
+                    loadTasks(true); // pakai cache, jadi re-render-nya gak ketahan nunggu fetch
                 }, 400);
             }
 
@@ -3241,11 +3254,13 @@
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
+
+                // Tugas lokal gak butuh internet sama sekali, jadi update-nya instan
+                tasks[index].done = isNowDone;
+                localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
+
                 setTimeout(() => {
-                    tasks[index].done = isNowDone;
-                    localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
-                    window.lastTasksData = "";
-                    loadTasks();
+                    loadTasks(true); // gak perlu fetch ulang ke server buat re-render tugas lokal
                 }, 400);
             }
 
