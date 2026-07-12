@@ -1407,28 +1407,36 @@
             z-index: 9999;
             pointer-events: none;
             animation-name: flyOut;
-            animation-timing-function: cubic-bezier(0.25, 0.65, 0.35, 1);
+            animation-timing-function: cubic-bezier(0.32, 0.1, 0.28, 1);
             animation-fill-mode: forwards;
             will-change: transform, opacity;
         }
 
         @keyframes flyOut {
             0% {
-                transform: translate(0, 0) rotate(0deg) scale(0.4);
+                transform: translate(0, 0) rotate(0deg) scaleY(1);
                 opacity: 1;
             }
 
-            15% {
-                transform: translate(calc(var(--bx) * 0.6), calc(var(--by) * 0.6)) rotate(var(--r1)) scale(1.15);
+            18% {
+                transform: translate(var(--bx), var(--by)) rotate(var(--r1)) scaleY(0.35);
+                opacity: 1;
             }
 
-            45% {
-                transform: translate(var(--bx), var(--by)) rotate(var(--r1)) scale(1);
+            38% {
+                transform: translate(var(--mx), var(--my)) rotate(var(--r2)) scaleY(1);
+            }
+
+            60% {
+                transform: translate(var(--nx), var(--ny)) rotate(var(--r3)) scaleY(0.35);
+            }
+
+            82% {
                 opacity: 1;
             }
 
             100% {
-                transform: translate(var(--fx), var(--fy)) rotate(var(--r2)) scale(0.4);
+                transform: translate(var(--fx), var(--fy)) rotate(var(--r4)) scaleY(1);
                 opacity: 0;
             }
         }
@@ -3203,7 +3211,7 @@
             function createConfetti(x, y) {
                 const colors = ['#ff0000', '#ffea00', '#ff00ff', '#00ff00', '#00eaff', '#ff9100', '#ffffff', '#7c4dff', '#ff4d94', '#00c853'];
                 const shapes = ['circle', 'square', 'strip'];
-                const pieceCount = 42;
+                const pieceCount = 46;
                 const frag = document.createDocumentFragment();
                 const pieces = [];
 
@@ -3215,11 +3223,11 @@
                     const shape = shapes[Math.floor(Math.random() * shapes.length)];
                     let w, h, radius;
                     if (shape === 'circle') {
-                        w = h = 6 + Math.random() * 5;
+                        w = h = 5 + Math.random() * 5;
                         radius = '50%';
                     } else if (shape === 'strip') {
                         w = 4 + Math.random() * 3;
-                        h = 11 + Math.random() * 7;
+                        h = 11 + Math.random() * 8;
                         radius = '1px';
                     } else {
                         w = h = 6 + Math.random() * 6;
@@ -3230,32 +3238,52 @@
                     confetti.style.borderRadius = radius;
                     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-                    // Tahap 1: mekar/meledak keluar dari titik tap
+                    // Titik ledakan awal dari titik tap
                     const angle = Math.random() * Math.PI * 2;
-                    const burstDist = 35 + Math.random() * 70;
+                    const burstDist = 30 + Math.random() * 65;
                     const bx = Math.cos(angle) * burstDist;
                     const by = Math.sin(angle) * burstDist;
-                    // Tahap 2: abis mekar, "jatuh" ke bawah kayak kena gravitasi
-                    const fx = bx + (Math.random() * 50 - 25);
-                    const fy = by + 70 + Math.random() * 100;
+
+                    // Goyang kiri-kanan kayak daun jatuh, biar lintasannya gak lurus kaku
+                    const swayAmp = 18 + Math.random() * 35;
+                    const swayDir = Math.random() < 0.5 ? 1 : -1;
+                    const mx = bx + swayAmp * swayDir;
+                    const my = by + 25 + Math.random() * 20;
+                    const nx = bx - swayAmp * swayDir * 0.7;
+                    const ny = by + 65 + Math.random() * 35;
+                    const fx = bx + swayAmp * swayDir * 0.25 + (Math.random() * 24 - 12);
+                    const fy = by + 130 + Math.random() * 110;
 
                     confetti.style.setProperty('--bx', bx.toFixed(1) + 'px');
                     confetti.style.setProperty('--by', by.toFixed(1) + 'px');
+                    confetti.style.setProperty('--mx', mx.toFixed(1) + 'px');
+                    confetti.style.setProperty('--my', my.toFixed(1) + 'px');
+                    confetti.style.setProperty('--nx', nx.toFixed(1) + 'px');
+                    confetti.style.setProperty('--ny', ny.toFixed(1) + 'px');
                     confetti.style.setProperty('--fx', fx.toFixed(1) + 'px');
                     confetti.style.setProperty('--fy', fy.toFixed(1) + 'px');
-                    confetti.style.setProperty('--r1', Math.floor(Math.random() * 360) + 'deg');
-                    confetti.style.setProperty('--r2', Math.floor(720 + Math.random() * 720) + 'deg');
 
-                    const duration = 850 + Math.random() * 500;
+                    // Rotasi progresif (bukan lompat sekali) + scaleY di CSS bikin efek
+                    // "kepipihin bolak-balik" kayak kertas confetti asli pas kebalik-balik jatuh
+                    const rotDir = Math.random() < 0.5 ? 1 : -1;
+                    const totalRot = (360 + Math.random() * 680) * rotDir;
+                    confetti.style.setProperty('--r1', (totalRot * 0.25).toFixed(0) + 'deg');
+                    confetti.style.setProperty('--r2', (totalRot * 0.5).toFixed(0) + 'deg');
+                    confetti.style.setProperty('--r3', (totalRot * 0.75).toFixed(0) + 'deg');
+                    confetti.style.setProperty('--r4', totalRot.toFixed(0) + 'deg');
+
+                    const duration = 950 + Math.random() * 600;
+                    const delay = Math.random() * 70;
                     confetti.style.animationDuration = duration.toFixed(0) + 'ms';
+                    confetti.style.animationDelay = delay.toFixed(0) + 'ms';
                     confetti.style.left = x + 'px';
                     confetti.style.top = y + 'px';
 
                     frag.appendChild(confetti);
-                    pieces.push({ el: confetti, duration });
+                    pieces.push({ el: confetti, total: duration + delay });
                 }
                 document.body.appendChild(frag);
-                pieces.forEach(p => setTimeout(() => p.el.remove(), p.duration));
+                pieces.forEach(p => setTimeout(() => p.el.remove(), p.total));
             }
 
             // Ambil status "done" paling update buat 1 tugas cloud, gabungan dari cache + centang personal.
