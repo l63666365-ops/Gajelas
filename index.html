@@ -1402,6 +1402,28 @@
             animation: slideSwap 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
         }
 
+        .confetti-piece {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            z-index: 9999;
+            pointer-events: none;
+            animation: flyOut 0.8s ease-out forwards;
+        }
+
+        @keyframes flyOut {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(var(--x), var(--y)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
         .btn-save-small {
             flex: 1;
             max-width: 130px;
@@ -2813,25 +2835,18 @@
             let localTasksCache = [];
             let cloudTasksCache = {};
 
-            async function loadTasks(skipFetch = false) {
+            async function loadTasks() {
                 const list = document.getElementById('taskList');
                 if (!list) return;
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem("userKelas") || "UMUM").trim();
                 let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
                 let cloudTasks = {};
-                if (skipFetch && window.cachedCloudTasks) {
-                    // Habis toggle centang: pakai cache biar re-render instan, gak nunggu network lagi
-                    cloudTasks = window.cachedCloudTasks;
-                } else {
-                    try {
-                        const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
-                        cloudTasks = await res.json() || {};
-                        window.cachedCloudTasks = cloudTasks;
-                    } catch (e) {
-                        console.log("Gagal ambil data cloud", e);
-                        cloudTasks = window.cachedCloudTasks || {};
-                    }
+                try {
+                    const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
+                    cloudTasks = await res.json() || {};
+                } catch (e) {
+                    console.log("Gagal ambil data cloud", e);
                 }
                 let localTasks = JSON.parse(localStorage.getItem('mySchoolTasks')) || [];
                 let combinedTasks = [];
@@ -3169,192 +3184,52 @@
                 }
             }
 
-            // ==== Mesin partikel confetti, diadaptasi dari kode canvas yang dikasih user ====
-            // Teknik intinya: tiap partikel jalan sepanjang kurva bezier kubik (p0->p1->p2->p3)
-            // dengan easing outCubic, rotasinya ngikutin arah gerak sesaat (atan2), dan
-            // "kepipihan" (scaleY) dihitung pakai sin(PI * f * 10) biar keliatan kayak
-            // kertas confetti yang kebalik-balik pas terbang/jatuh — persis logika aslinya,
-            // cuma dipindah dari <canvas> full-screen ke burst lokal dari titik tap.
-            const CONFETTI_HALF_PI = Math.PI * 0.5;
-            let confettiCanvas = null;
-            let confettiCtx = null;
-            let confettiParticles = [];
-            let confettiRafId = null;
-
-            function ensureConfettiCanvas() {
-                if (confettiCanvas) return;
-                confettiCanvas = document.createElement('canvas');
-                confettiCanvas.style.cssText = 'position:fixed; top:0; left:0; pointer-events:none; z-index:99999;';
-                document.body.appendChild(confettiCanvas);
-                confettiCtx = confettiCanvas.getContext('2d');
-                const resize = () => {
-                    confettiCanvas.width = window.innerWidth;
-                    confettiCanvas.height = window.innerHeight;
-                };
-                resize();
-                window.addEventListener('resize', resize);
-            }
-
-            // Easing outCubic, rumusnya sama persis kayak di kode referensi
-            function confettiEaseOutCubic(t, b, c, d) {
-                t = t / d - 1;
-                return c * (t * t * t + 1) + b;
-            }
-
-            // Titik di kurva bezier kubik p0-p1-p2-p3 pada waktu t (0..1), sama kayak cubeBezier aslinya
-            function confettiBezierPoint(p0, p1, p2, p3, t) {
-                const nt = 1 - t;
-                return {
-                    x: nt * nt * nt * p0.x + 3 * nt * nt * t * p1.x + 3 * nt * t * t * p2.x + t * t * t * p3.x,
-                    y: nt * nt * nt * p0.y + 3 * nt * nt * t * p1.y + 3 * nt * t * t * p2.y + t * t * t * p3.y
-                };
-            }
-
-            function ConfettiParticle(x, y, color) {
-                this.p0 = { x: x, y: y };
-                // Titik kontrol & titik akhir diacak di sekitar titik tap, lalu jatuh ke bawah
-                const dir = Math.random() < 0.5 ? -1 : 1;
-                const spread = 60 + Math.random() * 130;
-                this.p1 = { x: x + dir * spread * (0.3 + Math.random() * 0.6), y: y - (15 + Math.random() * 55) };
-                this.p2 = { x: x + dir * spread * (0.5 + Math.random() * 0.9), y: y + (50 + Math.random() * 70) };
-                this.p3 = { x: x + dir * spread * (0.3 + Math.random() * 0.8), y: y + 180 + Math.random() * 180 };
-
-                this.time = 0;
-                this.duration = 0.9 + Math.random() * 0.7;
-                this.color = color;
-                this.w = 5 + Math.random() * 6;
-                this.h = 3 + Math.random() * 4;
-
-                this.x = x;
-                this.y = y;
-                this.r = 0;
-                this.sy = 1;
-                this.opacity = 1;
-                this.complete = false;
-            }
-
-            ConfettiParticle.prototype.update = function (dt) {
-                this.time = Math.min(this.duration, this.time + dt);
-                const f = confettiEaseOutCubic(this.time, 0, 1, this.duration);
-                const p = confettiBezierPoint(this.p0, this.p1, this.p2, this.p3, f);
-
-                const dx = p.x - this.x;
-                const dy = p.y - this.y;
-                this.r = Math.atan2(dy, dx) + CONFETTI_HALF_PI;
-                this.sy = Math.sin(Math.PI * f * 10);
-                this.x = p.x;
-                this.y = p.y;
-
-                // Fade keluar di 25% durasi terakhir
-                this.opacity = f < 0.75 ? 1 : Math.max(0, 1 - (f - 0.75) / 0.25);
-                this.complete = this.time >= this.duration;
-            };
-
-            ConfettiParticle.prototype.draw = function (ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.r);
-                ctx.scale(1, this.sy === 0 ? 0.001 : this.sy);
-                ctx.globalAlpha = this.opacity;
-                ctx.fillStyle = this.color;
-                ctx.fillRect(-this.w * 0.5, -this.h * 0.5, this.w, this.h);
-                ctx.restore();
-            };
-
             function createConfetti(x, y) {
-                ensureConfettiCanvas();
-                const colors = ['#ff0000', '#ffea00', '#ff00ff', '#00ff00', '#00eaff', '#ff9100', '#ffffff', '#7c4dff', '#ff4d94', '#00c853'];
-                const count = 55;
-                for (let i = 0; i < count; i++) {
-                    confettiParticles.push(new ConfettiParticle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+                const colors = ['#ff0000', '#ffea00', '#ff00ff', '#00ff00', '#00eaff', '#ff9100', '#ffffff'];
+                for (let i = 0; i < 35; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti-piece';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    const angle = Math.random() * Math.PI * 2;
+                    const velocity = 40 + Math.random() * 80;
+                    const targetX = (Math.cos(angle) * velocity) + 'px';
+                    const targetY = (Math.sin(angle) * velocity) + 'px';
+                    confetti.style.setProperty('--x', targetX);
+                    confetti.style.setProperty('--y', targetY);
+                    confetti.style.left = x + 'px';
+                    confetti.style.top = y + 'px';
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 800);
                 }
-
-                if (confettiRafId) return; // loop render udah jalan, partikel baru bakal ke-handle juga
-
-                let lastTime = performance.now();
-                const renderLoop = (now) => {
-                    const dt = Math.min(0.05, (now - lastTime) / 1000);
-                    lastTime = now;
-                    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-                    confettiParticles.forEach(p => { p.update(dt); p.draw(confettiCtx); });
-                    confettiParticles = confettiParticles.filter(p => !p.complete);
-
-                    if (confettiParticles.length > 0) {
-                        confettiRafId = requestAnimationFrame(renderLoop);
-                    } else {
-                        confettiRafId = null;
-                        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-                    }
-                };
-                confettiRafId = requestAnimationFrame(renderLoop);
             }
 
-            // Ambil status "done" paling update buat 1 tugas cloud, gabungan dari cache + centang personal.
-            // Dipakai biar toggle gak pernah kejebak baca status yang basi.
-            function getCloudTaskDoneState(id) {
-                const cloudDone = !!(window.cachedCloudTasks && window.cachedCloudTasks[id] && window.cachedCloudTasks[id].done);
-                let personalChecks = {};
-                try { personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {}; } catch (e) { }
-                return cloudDone || personalChecks[id] === true;
-            }
-
-            // Update tampilan checkbox (icon centang + class done) LANGSUNG saat itu juga,
-            // gak nunggu loadTasks() render ulang. Juga nge-refresh atribut onclick biar kalau
-            // di-tap lagi sebelum sempat re-render, status yang kepake udah yang terbaru (bukan basi).
-            function updateCheckboxVisual(taskEl, id, isCloud, isNowDone) {
-                if (!taskEl) return;
-                taskEl.classList.toggle('done', isNowDone);
-                const checkEl = taskEl.querySelector('.task-check-custom');
-                if (!checkEl) return;
-                checkEl.innerHTML = isNowDone
-                    ? `<svg viewBox="0 0 24 24" fill="none" width="20" height="20">
-        <path d="M 19.3 7.2 A 9 9 0 1 1 13.8 3.0" stroke="var(--color-2)" stroke-width="2.2" stroke-linecap="round"/>
-        <path d="M 7 12 L 10.5 15.5 L 19.5 0.5" stroke="var(--color-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`
-                    : `<svg viewBox="0 0 24 24" fill="none" width="20" height="20">
-        <circle cx="12" cy="12" r="9" stroke="#aac0d8" stroke-width="1.8"/>
-    </svg>`;
-                const newToggleFunc = isCloud ? `toggleTaskCloud('${id}', ${isNowDone}, event)` : `toggleTaskLocal('${id}', event)`;
-                checkEl.setAttribute('onclick', newToggleFunc);
-            }
-
-            function toggleTaskCloud(id, currentStatus, event) {
+            async function toggleTaskCloud(id, currentStatus, event) {
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem('userKelas') || 'UMUM').trim();
-                // Jangan percaya mentah-mentah ke parameter currentStatus (bisa basi kalau
-                // DOM belum sempat re-render dari tap sebelumnya) — ambil status paling fresh.
-                const actualCurrentStatus = window.cachedCloudTasks ? getCloudTaskDoneState(id) : currentStatus;
-                const isNowDone = !actualCurrentStatus;
+                const isNowDone = !currentStatus;
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
-                updateCheckboxVisual(taskEl, id, true, isNowDone);
-
-                // Update state lokal LANGSUNG (gak nunggu network) biar checkbox kerasa instan
-                if (role === 'sekretaris') {
-                    if (window.cachedCloudTasks && window.cachedCloudTasks[id]) {
-                        window.cachedCloudTasks[id].done = isNowDone;
-                    }
-                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                    delete personalChecks[id];
-                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
-                    // Sync ke server di BACKGROUND, gak nge-block tampilan
-                    fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ done: isNowDone })
-                    }).catch(e => console.log("Gagal sync ke cloud", e));
-                } else {
-                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                    if (isNowDone) {
-                        personalChecks[id] = true;
-                    } else {
+                setTimeout(async () => {
+                    if (role === 'sekretaris') {
+                        await fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ done: isNowDone })
+                        });
+                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
                         delete personalChecks[id];
+                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                    } else {
+                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
+                        if (isNowDone) {
+                            personalChecks[id] = true;
+                        } else {
+                            delete personalChecks[id];
+                        }
+                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
                     }
-                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
-                }
-
-                setTimeout(() => {
-                    loadTasks(true); // pakai cache, jadi re-render-nya gak ketahan nunggu fetch
+                    window.lastTasksData = "";
+                    loadTasks();
                 }, 400);
             }
 
@@ -3366,14 +3241,11 @@
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
-                updateCheckboxVisual(taskEl, `local-${index}`, false, isNowDone);
-
-                // Tugas lokal gak butuh internet sama sekali, jadi update-nya instan
-                tasks[index].done = isNowDone;
-                localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
-
                 setTimeout(() => {
-                    loadTasks(true); // gak perlu fetch ulang ke server buat re-render tugas lokal
+                    tasks[index].done = isNowDone;
+                    localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
+                    window.lastTasksData = "";
+                    loadTasks();
                 }, 400);
             }
 
