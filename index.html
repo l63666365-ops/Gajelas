@@ -1533,21 +1533,24 @@
         }
 
         .file-doc-box {
-            background: var(--white);
+            background: #e1e8f0;
             padding: 12px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             gap: 12px;
-            border: 1.5px solid var(--color-4);
+            border: 1.5px solid #7da0ca;
             cursor: pointer;
-            color: var(--color-2);
             transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .file-doc-box svg {
+            color: #3b6ea5;
         }
 
         .file-doc-name {
             font-size: 11px;
-            color: var(--color-1);
+            color: #052659;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1556,13 +1559,13 @@
         .file-doc-sub {
             font-size: 9px;
             font-style: italic;
-            color: var(--color-2);
+            color: #3b6ea5;
             margin-top: 2px;
         }
 
         .file-audio-box {
             width: 100%;
-            background: var(--white);
+            background: #f8f9fa;
             padding: 10px;
             border-radius: 10px;
             border: 1px solid var(--color-4);
@@ -1582,6 +1585,28 @@
         .file-audio-el {
             width: 100%;
             height: 35px;
+        }
+
+        /* --- Dark mode only, light mode above stays untouched --- */
+        [data-theme="dark"] .file-doc-box {
+            background: var(--white);
+            border-color: var(--color-4);
+        }
+
+        [data-theme="dark"] .file-doc-box svg {
+            color: var(--color-2);
+        }
+
+        [data-theme="dark"] .file-doc-name {
+            color: var(--color-1);
+        }
+
+        [data-theme="dark"] .file-doc-sub {
+            color: var(--color-2);
+        }
+
+        [data-theme="dark"] .file-audio-box {
+            background: var(--white);
         }
 
         [data-theme="dark"] audio {
