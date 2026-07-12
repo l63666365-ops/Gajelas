@@ -1404,22 +1404,31 @@
 
         .confetti-piece {
             position: fixed;
-            width: 8px;
-            height: 8px;
-            border-radius: 2px;
             z-index: 9999;
             pointer-events: none;
-            animation: flyOut 0.8s ease-out forwards;
+            animation-name: flyOut;
+            animation-timing-function: cubic-bezier(0.25, 0.65, 0.35, 1);
+            animation-fill-mode: forwards;
+            will-change: transform, opacity;
         }
 
         @keyframes flyOut {
             0% {
-                transform: translate(0, 0) scale(1);
+                transform: translate(0, 0) rotate(0deg) scale(0.4);
+                opacity: 1;
+            }
+
+            15% {
+                transform: translate(calc(var(--bx) * 0.6), calc(var(--by) * 0.6)) rotate(var(--r1)) scale(1.15);
+            }
+
+            45% {
+                transform: translate(var(--bx), var(--by)) rotate(var(--r1)) scale(1);
                 opacity: 1;
             }
 
             100% {
-                transform: translate(var(--x), var(--y)) scale(0.5);
+                transform: translate(var(--fx), var(--fy)) rotate(var(--r2)) scale(0.4);
                 opacity: 0;
             }
         }
@@ -3192,22 +3201,61 @@
             }
 
             function createConfetti(x, y) {
-                const colors = ['#ff0000', '#ffea00', '#ff00ff', '#00ff00', '#00eaff', '#ff9100', '#ffffff'];
-                for (let i = 0; i < 35; i++) {
+                const colors = ['#ff0000', '#ffea00', '#ff00ff', '#00ff00', '#00eaff', '#ff9100', '#ffffff', '#7c4dff', '#ff4d94', '#00c853'];
+                const shapes = ['circle', 'square', 'strip'];
+                const pieceCount = 42;
+                const frag = document.createDocumentFragment();
+                const pieces = [];
+
+                for (let i = 0; i < pieceCount; i++) {
                     const confetti = document.createElement('div');
                     confetti.className = 'confetti-piece';
+
+                    // Bentuk & ukuran diacak biar keliatan macem-macem kayak confetti asli
+                    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+                    let w, h, radius;
+                    if (shape === 'circle') {
+                        w = h = 6 + Math.random() * 5;
+                        radius = '50%';
+                    } else if (shape === 'strip') {
+                        w = 4 + Math.random() * 3;
+                        h = 11 + Math.random() * 7;
+                        radius = '1px';
+                    } else {
+                        w = h = 6 + Math.random() * 6;
+                        radius = '2px';
+                    }
+                    confetti.style.width = w + 'px';
+                    confetti.style.height = h + 'px';
+                    confetti.style.borderRadius = radius;
                     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                    // Tahap 1: mekar/meledak keluar dari titik tap
                     const angle = Math.random() * Math.PI * 2;
-                    const velocity = 40 + Math.random() * 80;
-                    const targetX = (Math.cos(angle) * velocity) + 'px';
-                    const targetY = (Math.sin(angle) * velocity) + 'px';
-                    confetti.style.setProperty('--x', targetX);
-                    confetti.style.setProperty('--y', targetY);
+                    const burstDist = 35 + Math.random() * 70;
+                    const bx = Math.cos(angle) * burstDist;
+                    const by = Math.sin(angle) * burstDist;
+                    // Tahap 2: abis mekar, "jatuh" ke bawah kayak kena gravitasi
+                    const fx = bx + (Math.random() * 50 - 25);
+                    const fy = by + 70 + Math.random() * 100;
+
+                    confetti.style.setProperty('--bx', bx.toFixed(1) + 'px');
+                    confetti.style.setProperty('--by', by.toFixed(1) + 'px');
+                    confetti.style.setProperty('--fx', fx.toFixed(1) + 'px');
+                    confetti.style.setProperty('--fy', fy.toFixed(1) + 'px');
+                    confetti.style.setProperty('--r1', Math.floor(Math.random() * 360) + 'deg');
+                    confetti.style.setProperty('--r2', Math.floor(720 + Math.random() * 720) + 'deg');
+
+                    const duration = 850 + Math.random() * 500;
+                    confetti.style.animationDuration = duration.toFixed(0) + 'ms';
                     confetti.style.left = x + 'px';
                     confetti.style.top = y + 'px';
-                    document.body.appendChild(confetti);
-                    setTimeout(() => confetti.remove(), 800);
+
+                    frag.appendChild(confetti);
+                    pieces.push({ el: confetti, duration });
                 }
+                document.body.appendChild(frag);
+                pieces.forEach(p => setTimeout(() => p.el.remove(), p.duration));
             }
 
             function toggleTaskCloud(id, currentStatus, event) {
