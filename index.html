@@ -657,6 +657,9 @@
             min-width: 26px;
             cursor: pointer;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: transform 0.15s ease;
         }
 
@@ -2908,22 +2911,23 @@
                 const container = document.getElementById('imagePreviewContainer');
                 container.innerHTML = ""; container.style.display = 'none';
             }
-            let localTasksCache = [];
             let cloudTasksCache = {};
 
-            async function loadTasks() {
+            async function loadTasks(refresh = true) {
                 const list = document.getElementById('taskList');
                 if (!list) return;
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem("userKelas") || "UMUM").trim();
                 let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                let cloudTasks = {};
-                try {
-                    const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
-                    cloudTasks = await res.json() || {};
-                } catch (e) {
-                    console.log("Gagal ambil data cloud", e);
+                if (refresh) {
+                    try {
+                        const res = await fetch(`${firebaseTugasURL}/${userKelas}.json`);
+                        cloudTasksCache = await res.json() || {};
+                    } catch (e) {
+                        console.log("Gagal ambil data cloud", e);
+                    }
                 }
+                let cloudTasks = cloudTasksCache;
                 let localTasks = JSON.parse(localStorage.getItem('mySchoolTasks')) || [];
                 let combinedTasks = [];
                 Object.keys(cloudTasks).forEach(id => {
@@ -3339,27 +3343,35 @@
                 }
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
-                setTimeout(async () => {
-                    if (role === 'sekretaris') {
-                        await fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ done: isNowDone })
-                        });
-                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                        delete personalChecks[id];
-                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+
+                // Update cache & localStorage LANGSUNG (optimistic) biar re-render gak nunggu server
+                if (role === 'sekretaris') {
+                    if (cloudTasksCache[id]) cloudTasksCache[id].done = isNowDone;
+                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
+                    delete personalChecks[id];
+                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                } else {
+                    let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
+                    if (isNowDone) {
+                        personalChecks[id] = true;
                     } else {
-                        let personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {};
-                        if (isNowDone) {
-                            personalChecks[id] = true;
-                        } else {
-                            delete personalChecks[id];
-                        }
-                        localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                        delete personalChecks[id];
                     }
-                    window.lastTasksData = "";
-                    loadTasks();
+                    localStorage.setItem('personalTaskChecks', JSON.stringify(personalChecks));
+                }
+
+                // Render ulang pakai cache yang udah diupdate -> instan, gak nunggu network
+                setTimeout(() => {
+                    loadTasks(false);
                 }, 400);
+
+                // Sinkron ke server di belakang layar, gak ngeblok tampilan
+                if (role === 'sekretaris') {
+                    fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ done: isNowDone })
+                    }).catch(e => console.log('Gagal sync ke server', e));
+                }
             }
 
             function toggleTaskLocal(index, event) {
@@ -3377,11 +3389,10 @@
                 }
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
+                tasks[index].done = isNowDone;
+                localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
                 setTimeout(() => {
-                    tasks[index].done = isNowDone;
-                    localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
-                    window.lastTasksData = "";
-                    loadTasks();
+                    loadTasks(false);
                 }, 400);
             }
 
@@ -3390,11 +3401,12 @@
                 const taskEl = event.target.closest('.task-item');
                 taskEl.style.opacity = '0';
                 taskEl.style.transform = 'translateX(20px)';
-                setTimeout(async () => {
-                    await fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, { method: 'DELETE' });
-                    window.lastTasksData = "";
-                    loadTasks();
+                delete cloudTasksCache[id];
+                setTimeout(() => {
+                    loadTasks(false);
                 }, 300);
+                fetch(`${firebaseTugasURL}/${userKelas}/${id}.json`, { method: 'DELETE' })
+                    .catch(e => console.log('Gagal hapus di server', e));
             }
 
             function deleteTaskLocal(index, event) {
@@ -3403,12 +3415,11 @@
                 const taskEl = event.target.closest('.task-item');
                 taskEl.style.opacity = '0';
                 taskEl.style.transform = 'translateX(20px)';
+                let tasks = JSON.parse(localStorage.getItem('mySchoolTasks')) || [];
+                tasks.splice(index, 1);
+                localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
                 setTimeout(() => {
-                    let tasks = JSON.parse(localStorage.getItem('mySchoolTasks')) || [];
-                    tasks.splice(index, 1);
-                    localStorage.setItem('mySchoolTasks', JSON.stringify(tasks));
-                    window.lastTasksData = "";
-                    loadTasks();
+                    loadTasks(false);
                 }, 300);
             }
 
