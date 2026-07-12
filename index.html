@@ -3258,13 +3258,46 @@
                 pieces.forEach(p => setTimeout(() => p.el.remove(), p.duration));
             }
 
+            // Ambil status "done" paling update buat 1 tugas cloud, gabungan dari cache + centang personal.
+            // Dipakai biar toggle gak pernah kejebak baca status yang basi.
+            function getCloudTaskDoneState(id) {
+                const cloudDone = !!(window.cachedCloudTasks && window.cachedCloudTasks[id] && window.cachedCloudTasks[id].done);
+                let personalChecks = {};
+                try { personalChecks = JSON.parse(localStorage.getItem('personalTaskChecks')) || {}; } catch (e) { }
+                return cloudDone || personalChecks[id] === true;
+            }
+
+            // Update tampilan checkbox (icon centang + class done) LANGSUNG saat itu juga,
+            // gak nunggu loadTasks() render ulang. Juga nge-refresh atribut onclick biar kalau
+            // di-tap lagi sebelum sempat re-render, status yang kepake udah yang terbaru (bukan basi).
+            function updateCheckboxVisual(taskEl, id, isCloud, isNowDone) {
+                if (!taskEl) return;
+                taskEl.classList.toggle('done', isNowDone);
+                const checkEl = taskEl.querySelector('.task-check-custom');
+                if (!checkEl) return;
+                checkEl.innerHTML = isNowDone
+                    ? `<svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+        <path d="M 19.3 7.2 A 9 9 0 1 1 13.8 3.0" stroke="var(--color-2)" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M 7 12 L 10.5 15.5 L 19.5 0.5" stroke="var(--color-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`
+                    : `<svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+        <circle cx="12" cy="12" r="9" stroke="#aac0d8" stroke-width="1.8"/>
+    </svg>`;
+                const newToggleFunc = isCloud ? `toggleTaskCloud('${id}', ${isNowDone}, event)` : `toggleTaskLocal('${id}', event)`;
+                checkEl.setAttribute('onclick', newToggleFunc);
+            }
+
             function toggleTaskCloud(id, currentStatus, event) {
                 const role = localStorage.getItem('role');
                 const userKelas = (localStorage.getItem('userKelas') || 'UMUM').trim();
-                const isNowDone = !currentStatus;
+                // Jangan percaya mentah-mentah ke parameter currentStatus (bisa basi kalau
+                // DOM belum sempat re-render dari tap sebelumnya) — ambil status paling fresh.
+                const actualCurrentStatus = window.cachedCloudTasks ? getCloudTaskDoneState(id) : currentStatus;
+                const isNowDone = !actualCurrentStatus;
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
+                updateCheckboxVisual(taskEl, id, true, isNowDone);
 
                 // Update state lokal LANGSUNG (gak nunggu network) biar checkbox kerasa instan
                 if (role === 'sekretaris') {
@@ -3302,6 +3335,7 @@
                 if (isNowDone && event) createConfetti(event.clientX, event.clientY);
                 const taskEl = event.target.closest('.task-item');
                 taskEl.classList.add('slide-down');
+                updateCheckboxVisual(taskEl, `local-${index}`, false, isNowDone);
 
                 // Tugas lokal gak butuh internet sama sekali, jadi update-nya instan
                 tasks[index].done = isNowDone;
